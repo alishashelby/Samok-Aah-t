@@ -1,0 +1,170 @@
+name: Samokaaht
+
+services:
+  db:
+    container_name: app_db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      ANALYST_NAMES: ${ANALYST_NAMES}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "${PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  flyway:
+    container_name: app_flyway
+    image: flyway/flyway
+    env_file: .env
+    volumes:
+      - ./flyway/sql:/flyway/sql
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_TARGET: ${MIGRATION_VERSION:-latest}
+    command: ["migrate", "-target=${MIGRATION_VERSION:-latest}"]
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+  seeding:
+    container_name: app_seeding
+    build:
+      context: ./seeding
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      APP_ENV: ${APP_ENV}
+      SEED_COUNT: ${SEED_COUNT:-100}
+    depends_on:
+      db:
+          condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+
+  postgres_exporter:
+    container_name: app_postgres_exporter
+    image: wrouesnel/postgres_exporter:v0.8.0
+    env_file: .env
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    volumes:
+      - ./prometheus/queries.yaml:/queries.yaml
+    command:
+      - "--extend.query-path=/queries.yaml"
+      - "--disable-default-metrics"
+      - "--disable-settings-metrics"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT}:9187"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    container_name: app_prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    depends_on:
+      - postgres_exporter
+    networks:
+      - app_network
+
+  grafana:
+    image: grafana/grafana:12.0.0
+    container_name: app_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - app_network
+
+  simulator:
+    container_name: app_simulator
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      INTERVAL_SECONDS: ${INTERVAL_SECONDS}
+    ports:
+      - "6969:6969"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:6969/metrics" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      flyway:
+        condition: service_completed_successfully
+      seeding:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    container_name: app_backup
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_RETENTION_COUNT: ${BACKUP_RETENTION_COUNT:-10}
+      BACKUP_INTERVAL_CRON: ${BACKUP_INTERVAL_CRON:-"0 1 * * *"}
+    volumes:
+      - backups_data:/backups
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+volumes:
+  db_data:
+  grafana_data:
+  backups_data:
+
+networks:
+  app_network:
+    driver: bridge

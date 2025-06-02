@@ -1,0 +1,27 @@
+index_usage_stats:
+  query: |
+    SELECT
+      t.schemaname,
+      t.relname AS table_name,
+      i.indexrelname AS index_name,
+      i.idx_scan,
+      CASE 
+        WHEN t.seq_scan + t.idx_scan > 0 
+        THEN 100 * i.idx_scan / (t.seq_scan + t.idx_scan) 
+        ELSE 0 
+      END AS index_usage_percent
+    FROM pg_stat_user_tables t
+    JOIN pg_stat_user_indexes i ON t.relid = i.relid
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+    - table_name:
+        usage: "LABEL"
+    - index_name:
+        usage: "LABEL"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Index scan count"
+    - index_usage_percent:
+        usage: "GAUGE"
+        description: "Index usage percentage"
