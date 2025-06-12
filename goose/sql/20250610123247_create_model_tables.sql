@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS models (
     model_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -19,3 +21,11 @@ CREATE TABLE IF NOT EXISTS portfolio_data (
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_verified BOOLEAN DEFAULT FALSE
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS portfolio_data;
+DROP TABLE IF EXISTS social_media;
+DROP TABLE IF EXISTS models;
+-- +goose StatementEnd

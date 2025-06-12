@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS loyalty_levels (
     level_id SERIAL PRIMARY KEY,
     name VARCHAR(30) NOT NULL UNIQUE,
@@ -11,3 +13,10 @@ CREATE TABLE IF NOT EXISTS clients (
     name VARCHAR(50) NOT NULL,
     loyalty_level_id INT NOT NULL REFERENCES loyalty_levels(level_id) ON DELETE SET NULL
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS clients;
+DROP TABLE IF EXISTS loyalty_levels;
+-- +goose StatementEnd

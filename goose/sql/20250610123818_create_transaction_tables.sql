@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS payment_system_integration (
     payment_system_id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
@@ -27,17 +29,25 @@ CREATE TABLE IF NOT EXISTS transactions (
     processed_at TIMESTAMP,
     CHECK (
         (type IN ('CLIENT_DEPOSIT', 'MODEL_PAYOUT', 'REFERRAL') AND order_id IS NULL)
-        OR
+            OR
         (type NOT IN ('CLIENT_DEPOSIT', 'MODEL_PAYOUT', 'REFERRAL') AND order_id IS NOT NULL)
         ),
     CHECK (
         (type IN ('CLIENT_DEPOSIT', 'MODEL_PAYOUT') AND external_transaction_id IS NOT NULL)
-        OR
+            OR
         (type NOT IN ('CLIENT_DEPOSIT', 'MODEL_PAYOUT') AND external_transaction_id IS NULL)
         ),
     CHECK (
         (type IN ('REFUND_TO_CLIENT', 'REFUND_FROM_MODEL', 'ORDER_CANCELLATION') AND reason IS NOT NULL )
-        OR
+            OR
         (type NOT IN ('REFUND_TO_CLIENT', 'REFUND_FROM_MODEL', 'ORDER_CANCELLATION') AND reason IS NULL)
         )
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS external_transactions;
+DROP TABLE IF EXISTS payment_system_integration;
+-- +goose StatementEnd

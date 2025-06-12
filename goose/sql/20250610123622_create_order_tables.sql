@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS promocodes (
     promocode_id SERIAL PRIMARY KEY,
     code VARCHAR(30) NOT NULL UNIQUE,
@@ -30,3 +32,11 @@ CREATE TABLE IF NOT EXISTS reviews (
     description VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS promocodes;
+-- +goose StatementEnd

@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS auth (
     auth_id SERIAL PRIMARY KEY,
     email varchar(320) NOT NULL UNIQUE,
@@ -46,3 +48,14 @@ $ban_status$ LANGUAGE plpgsql;
 CREATE TRIGGER ban_status
     AFTER INSERT ON ban
     FOR EACH ROW EXECUTE PROCEDURE process_ban_status();
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS ban;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS auth;
+DROP FUNCTION IF EXISTS process_ban_status;
+DROP TRIGGER IF EXISTS ban_status ON ban;
+-- +goose StatementEnd

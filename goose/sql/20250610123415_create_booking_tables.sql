@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS categories (
     category_id SERIAL PRIMARY KEY,
     name VARCHAR(70) NOT NULL UNIQUE
@@ -37,3 +39,13 @@ CREATE TABLE IF NOT EXISTS booking (
     status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING', 'REJECTED', 'APPROVED', 'CANCELLED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS booking;
+DROP TABLE IF EXISTS additional_services;
+DROP TABLE IF EXISTS model_services;
+DROP TABLE IF EXISTS services;
+DROP TABLE IF EXISTS categories;
+-- +goose StatementEnd
