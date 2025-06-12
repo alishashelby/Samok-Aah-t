@@ -1,4 +1,5 @@
 .idea/
 seeding/.idea/
 simulator/.idea/
+test/.idea
 .env
