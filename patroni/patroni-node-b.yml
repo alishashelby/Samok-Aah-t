@@ -1,0 +1,54 @@
+scope: ${PATRONI_SCOPE}
+name: ${PATRONI_NAME}
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: ${PATRONI_NAME}:8008
+
+etcd:
+  hosts:
+    - etcd0:2379
+    - etcd1:2379
+    - etcd2:2379
+  protocol: http
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      pg_hba:
+        - local all postgres peer
+        - host replication replicator 127.0.0.1/32 md5
+        - host replication replicator 0.0.0.0/0 md5
+        - host all all 0.0.0.0/0 md5
+      use_slots: true
+      parameters:
+        max_connections: 550
+        max_locks_per_transaction: 512
+        max_worker_processes: 27
+        shared_preload_libraries: pg_stat_statements
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+  post_init: /usr/local/bin/post_init.sh
+  create_database: ${POSTGRES_DB}
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: ${PATRONI_NAME}:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  authentication:
+    replication:
+      username: replicator
+      password: ${PATRONI_REPLICATION_PASSWORD}
+    superuser:
+      username: postgres
+      password: ${PATRONI_SUPERUSER_PASSWORD}
+    rewind:
+      username: rewinder
+      password: ${PATRONI_REWIND_PASSWORD}

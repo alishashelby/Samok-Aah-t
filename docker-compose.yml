@@ -1,46 +1,190 @@
 name: Samokaaht
 
 services:
-  db:
-    container_name: app_db
+  etcd0:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: etcd0
+    env_file: .env
+    environment:
+      ETCD_NAME: etcd0
+      ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd0:2379
+      ETCD_ENABLE_V2: true
+    networks:
+      - patroni_network
+    volumes:
+      - etcd_data0:/data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "endpoint", "health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  etcd1:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: etcd1
+    env_file: .env
+    environment:
+      ETCD_NAME: etcd1
+      ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd1:2379
+      ETCD_ENABLE_V2: true
+    networks:
+      - patroni_network
+    volumes:
+      - etcd_data1:/data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "endpoint", "health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  etcd2:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: etcd2
+    env_file: .env
+    environment:
+      ETCD_NAME: etcd2
+      ETCD_INITIAL_CLUSTER: etcd0=http://etcd0:2380,etcd1=http://etcd1:2380,etcd2=http://etcd2:2380
+      ETCD_INITIAL_CLUSTER_TOKEN: etcd-cluster
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd2:2379
+      ETCD_ENABLE_V2: true
+    networks:
+      - patroni_network
+    volumes:
+      - etcd_data2:/data
+    healthcheck:
+      test: [ "CMD", "etcdctl", "endpoint", "health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  patroni_node_a:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: patroni_node_a
     env_file: .env
-    restart: always
     environment:
+      PATRONI_NAME: patroni_node_a
+      PATRONI_SCOPE: pg-cluster
+      PATRONI_ETCD_HOSTS: "etcd0:2379,etcd1:2379,etcd2:2379"
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni_node_a:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni_node_a:8008
+      PATRONI_REPLICATION_PASSWORD: "${PATRONI_REPLICATION_PASSWORD}"
+      PATRONI_SUPERUSER_PASSWORD: "${POSTGRES_PASSWORD}"
+      PATRONI_REWIND_PASSWORD: "${PATRONI_REWIND_PASSWORD}"
+      ANALYST_NAMES: "${ANALYST_NAMES}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - patroni_node_a_data:/data/patroni
+      - ./patroni/patroni-node-a.yml:/etc/patroni/patroni.yml
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:8008/health" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    networks:
+      - patroni_network
+    depends_on:
+      etcd0:
+        condition: service_healthy
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+
+  patroni_node_b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: patroni_node_b
+    env_file: .env
+    environment:
+      PATRONI_NAME: patroni_node_b
+      PATRONI_SCOPE: pg-cluster
+      PATRONI_ETCD_HOSTS: "etcd0:2379,etcd1:2379,etcd2:2379"
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni_node_b:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni_node_b:8008
+      PATRONI_REPLICATION_PASSWORD: "${PATRONI_REPLICATION_PASSWORD}"
+      PATRONI_SUPERUSER_PASSWORD: "${POSTGRES_PASSWORD}"
+      PATRONI_REWIND_PASSWORD: "${PATRONI_REWIND_PASSWORD}"
+    volumes:
+      - patroni_node_b_data:/data/patroni
+      - ./patroni/patroni-node-b.yml:/etc/patroni/patroni.yml
+    healthcheck:
+      test: [ "CMD", "curl", "-sf", "http://localhost:8008/health" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    networks:
+      - patroni_network
+    depends_on:
+      etcd0:
+        condition: service_healthy
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+
+  haproxy:
+    image: haproxy:3.1.7
+    container_name: haproxy
+    env_file: .env
+    ports:
+      - "${PORT}:5432"
+      - "${HAPROXY_PORT}:8080"
+    volumes:
+      - ./patroni/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - patroni_network
+      - app_network
+    depends_on:
+      - patroni_node_a
+      - patroni_node_b
+    healthcheck:
+      test: [ "CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/5432'" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
+
+  goose:
+    container_name: app_goose
+    build:
+      context: ./goose
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      POSTGRES_HOST: haproxy
+      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      ANALYST_NAMES: ${ANALYST_NAMES}
+      MIGRATION_VERSION: ${MIGRATION_VERSION:-latest}
     volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - "${PORT}:5432"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./goose/sql:/goose/sql
     networks:
       - app_network
-
-  flyway:
-    container_name: app_flyway
-    image: flyway/flyway
-    env_file: .env
-    volumes:
-      - ./flyway/sql:/flyway/sql
-    environment:
-      FLYWAY_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
-      FLYWAY_USER: ${POSTGRES_USER}
-      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
-      FLYWAY_TARGET: ${MIGRATION_VERSION:-latest}
-    command: ["migrate", "-target=${MIGRATION_VERSION:-latest}"]
     depends_on:
-      - db
-    networks:
-      - app_network
+      haproxy:
+        condition: service_healthy
 
   seeding:
     container_name: app_seeding
@@ -52,9 +196,9 @@ services:
       APP_ENV: ${APP_ENV}
       SEED_COUNT: ${SEED_COUNT:-100}
     depends_on:
-      db:
+      haproxy:
           condition: service_healthy
-      flyway:
+      goose:
         condition: service_completed_successfully
     networks:
       - app_network
@@ -64,7 +208,7 @@ services:
     image: wrouesnel/postgres_exporter:v0.8.0
     env_file: .env
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@haproxy:5432/${POSTGRES_DB}?sslmode=disable
     volumes:
       - ./prometheus/queries.yaml:/queries.yaml
     command:
@@ -74,7 +218,7 @@ services:
     ports:
       - "${POSTGRES_EXPORTER_PORT}:9187"
     depends_on:
-      db:
+      haproxy:
         condition: service_healthy
     networks:
       - app_network
@@ -82,6 +226,7 @@ services:
   prometheus:
     image: prom/prometheus:v3.4.0
     container_name: app_prometheus
+    env_file: .env
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
@@ -96,9 +241,10 @@ services:
   grafana:
     image: grafana/grafana:12.0.0
     container_name: app_grafana
+    env_file: .env
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_USER}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
@@ -120,19 +266,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       INTERVAL_SECONDS: ${INTERVAL_SECONDS}
     ports:
-      - "6969:6969"
+      - "${SIMULATOR_PORT}:6969"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:6969/metrics" ]
       interval: 5s
       timeout: 2s
       retries: 10
     depends_on:
-      db:
-        condition: service_healthy
       prometheus:
         condition: service_started
-      flyway:
-        condition: service_completed_successfully
       seeding:
         condition: service_completed_successfully
     networks:
@@ -146,7 +288,7 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
+      POSTGRES_HOST: haproxy
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -156,15 +298,22 @@ services:
     volumes:
       - backups_data:/backups
     depends_on:
-      - db
+      haproxy:
+        condition: service_healthy
     networks:
       - app_network
 
 volumes:
-  db_data:
+  etcd_data0:
+  etcd_data1:
+  etcd_data2:
+  patroni_node_a_data:
+  patroni_node_b_data:
   grafana_data:
   backups_data:
 
 networks:
   app_network:
+    driver: bridge
+  patroni_network:
     driver: bridge
