@@ -2,8 +2,6 @@ services:
   test-db:
     image: postgres:16
     container_name: test_db
-    env_file:
-      - ../.env
     environment:
       POSTGRES_DB: ${TEST_POSTGRES_DB}
       POSTGRES_USER: ${TEST_POSTGRES_USER}
@@ -23,8 +21,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: app_migration_tester
-    env_file:
-      - ../.env
     environment:
       POSTGRES_HOST: test_db
       POSTGRES_PORT: 5432
