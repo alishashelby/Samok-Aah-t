@@ -79,3 +79,9 @@
 
 ## ER-диаграмма
 ![](images/ERD.png)
+
+## Без индексации
+![](grafana/without_indexes.png)
+
+## Оптимизация (индексирование)
+![](grafana/with_indexes.png)
