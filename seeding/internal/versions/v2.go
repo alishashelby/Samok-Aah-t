@@ -145,7 +145,10 @@ func (s *SeedingV2) insertAdmins() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare(`
         INSERT INTO admins (auth_id, permissions) 
@@ -187,7 +190,10 @@ func (s *SeedingV2) insertUsers() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	for range s.service.GetUserCount() {
 		auth, err := s.provideAuth()
@@ -263,7 +269,10 @@ func (s *SeedingV2) insertBans() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	for range s.service.GetBanCount() {
 		userID := s.service.Fake.IntBetween(1, s.service.GetUserCount()-1)

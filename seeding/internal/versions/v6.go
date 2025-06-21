@@ -48,6 +48,7 @@ type Review struct {
 	CreatedAt   time.Time
 }
 
+// nolint:dupl
 func (s *SeedingV6) FakeV6() error {
 	if !s.service.CheckTable("promocodes") ||
 		!s.service.CheckTable("orders") ||
@@ -87,7 +88,10 @@ func (s *SeedingV6) insertPromocodes() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO promocodes (" +
 		"code, percentage, start_time, finish_time, is_always)" +
@@ -142,7 +146,10 @@ func (s *SeedingV6) insertOrders() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO orders (" +
 		"booking_id, promocode_id, platform_fee, total_cost, status, security_code, created_at) " +
@@ -230,7 +237,10 @@ func (s *SeedingV6) insertReviews() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO reviews (" +
 		"order_id, from_user_id, to_user_id, rating, description, created_at) " +
@@ -333,7 +343,7 @@ func (s *SeedingV6) randomOrderStatus() string {
 	case num < 0.5:
 		return "COMPLETED"
 	case num < 0.6:
-		return "CANCELLED"
+		return cancelled
 	case num < 0.7:
 		return "IN_PROCESS"
 	case num < 0.8:

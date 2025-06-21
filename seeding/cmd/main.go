@@ -49,10 +49,11 @@ func main() {
 	initialize(handler)
 	migrations, err := handler.TopSort()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
-	var order []string
+	order := make([]string, len(migrations))
 	for _, m := range migrations {
 		order = append(order, strconv.Itoa(m.Version))
 	}
@@ -61,7 +62,8 @@ func main() {
 
 	for _, migration := range migrations {
 		if err := migration.SeedFunction(); err != nil {
-			log.Fatalf("Fatal err: %s", err)
+			log.Printf("Fatal err: %s", err)
+			return
 		}
 	}
 

@@ -36,7 +36,10 @@ func (s *SeedingV9) insertNewRegion() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	for range s.service.GetRegionCount() {
 		name := s.service.Fake.Address().State()

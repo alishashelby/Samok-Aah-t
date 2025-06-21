@@ -56,7 +56,10 @@ func (s *SeedingV1) insertRegion() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	for range s.service.GetRegionCount() {
 		name := s.service.Fake.Address().State()
@@ -80,7 +83,10 @@ func (s *SeedingV1) insertCities() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO cities (region_id, name) VALUES ($1, $2)")
 	if err != nil {

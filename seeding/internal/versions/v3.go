@@ -66,7 +66,10 @@ func (s *SeedingV3) insertLoyaltyLevels(levels []LoyaltyLevel) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	for i := range levels {
 		err := tx.QueryRow(
@@ -90,7 +93,10 @@ func (s *SeedingV3) insertClients(levelCount int) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	rows, err := tx.Query("SELECT u.user_id FROM users u "+
 		"WHERE NOT EXISTS (SELECT 1 FROM clients WHERE user_id = u.user_id) "+

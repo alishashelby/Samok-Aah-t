@@ -36,6 +36,7 @@ type PortfolioData struct {
 	UploadedAt  time.Time
 }
 
+// nolint:dupl
 func (s *SeedingV4) FakeV4() error {
 	if !s.service.CheckTable("models") ||
 		!s.service.CheckTable("social_media") ||
@@ -75,7 +76,10 @@ func (s *SeedingV4) insertModels() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	rows, err := tx.Query("SELECT u.user_id FROM users u "+
 		"WHERE NOT EXISTS (SELECT 1 FROM clients WHERE user_id = u.user_id) "+
@@ -127,7 +131,10 @@ func (s *SeedingV4) insertSocialMedia() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO social_media(model_id, platform, url) " +
 		"VALUES ($1, $2, $3)")
@@ -160,7 +167,10 @@ func (s *SeedingV4) insertPortfolioData() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO portfolio_data(model_id, media_url," +
 		"description, uploaded_at, is_verified) " +

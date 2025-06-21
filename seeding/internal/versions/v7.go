@@ -78,7 +78,10 @@ func (s *SeedingV7) insertPaymentSystemIntegration() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	paymentSystems := []string{"Sberbank", "Tinkoff", "YandexBank", "Stripe", "PayPal"}
 
@@ -103,7 +106,10 @@ func (s *SeedingV7) insertTransactions(paymentCount int) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO transactions (" +
 		"amount, type, order_id, external_transaction_id, " +
@@ -200,7 +206,7 @@ func (s *SeedingV7) randomTransactionStatus() string {
 	case num < 0.5:
 		return "SUCCESS"
 	case num < 0.8:
-		return "PENDING"
+		return pending
 	default:
 		return "FAILURE"
 	}

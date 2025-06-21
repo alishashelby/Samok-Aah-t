@@ -64,7 +64,7 @@ func (s *Config) TopSort() ([]Node, error) {
 	temp := make(map[int]bool)
 	topSort := make([]Node, 0)
 
-	var versions []int
+	versions := make([]int, len(s.Node))
 	for v := range s.Node {
 		versions = append(versions, v)
 	}

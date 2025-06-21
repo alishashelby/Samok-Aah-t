@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	cancelled = "CANCELLED"
+	pending   = "PENDING"
+)
+
 type SeedingV5 struct {
 	service *service.SeedingService
 }
@@ -112,7 +117,10 @@ func (s *SeedingV5) insertCategories() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO categories (name) VALUES ($1) RETURNING category_id")
 	if err != nil {
@@ -148,7 +156,10 @@ func (s *SeedingV5) insertServices() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO services (category_id, description) " +
 		"VALUES ($1, $2) RETURNING service_id")
@@ -178,7 +189,10 @@ func (s *SeedingV5) insertModelServices() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	modelCount := 0
 	stmt, err := tx.Prepare("INSERT INTO model_services (model_id, service_id, price) " +
@@ -217,7 +231,10 @@ func (s *SeedingV5) insertBooking(modelServicesCount int) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		//nolint:errcheck
+		tx.Rollback()
+	}()
 
 	stmt, err := tx.Prepare("INSERT INTO booking (" +
 		"client_id, model_service_id, date_time, duration, " +
@@ -302,6 +319,9 @@ func (s *SeedingV5) insertBooking(modelServicesCount int) error {
 
 		if additionalServiceID != 0 {
 			_, err = stmtUpdate.Exec(additionalServiceID, bookingID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -314,9 +334,9 @@ func (s *SeedingV5) randomAdditionalStatus() string {
 	case num < 0.5:
 		return "APPROVED"
 	case num < 0.6:
-		return "CANCELLED"
+		return cancelled
 	case num < 0.7:
-		return "PENDING"
+		return pending
 	case num < 0.8:
 		return "HIGHER_PRICE"
 	default:
@@ -330,9 +350,9 @@ func (s *SeedingV5) randomStatus() string {
 	case num < 0.5:
 		return "APPROVED"
 	case num < 0.6:
-		return "CANCELLED"
+		return cancelled
 	case num < 0.7:
-		return "PENDING"
+		return pending
 	default:
 		return "REJECTED"
 	}
