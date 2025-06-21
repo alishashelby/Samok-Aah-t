@@ -1,4 +1,4 @@
-name: SamokAaht CI
+name: Test migrations
 
 on:
   push:
@@ -31,23 +31,19 @@ jobs:
           path: |
             ~/go/pkg/mod
             ${{ matrix.module }}/go.sum
-          key: ${{ runner.os }}-go-${{ matrix.module }}-${{ hashFiles('${{ matrix.module }}/go.sum') }}
+          key: ${{ runner.os }}_${{ matrix.module }}${{ hashFiles('${{ matrix.module }}/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.module }}-
+            ${{ runner.os }}_${{ matrix.module }}
         continue-on-error: true
 
-      - name: Cache golangci-lint
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/golangci-lint
-          key: ${{ runner.os }}-golangci-lint
+      - name: Install golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.3
 
       - name: Lint Go code in ${{ matrix.module }}
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.60.3
-          args: --timeout=5m -v --config=../.github/.golangci.yml
-          working-directory: ${{ matrix.module }}
+        run: |
+          cd ${{ matrix.module }}
+          golangci-lint run --timeout=5m -v --config ../.github/.golangci.yml
 
   test_idempotency_of_migrations:
     runs-on: ubuntu-latest
