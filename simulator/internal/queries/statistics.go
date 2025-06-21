@@ -2,7 +2,6 @@ package queries
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -45,7 +44,7 @@ func (mq *StatisticsQueries) GetAdminStatisticsQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in statistics.go: GetAdminStatisticsQuery: %s", err))
+		return fmt.Errorf("error in statistics.go: GetAdminStatisticsQuery: %s", err)
 	}
 	defer rows.Close()
 
@@ -85,7 +84,7 @@ func (mq *StatisticsQueries) GetClientLoyaltyStatisticsQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in statistics.go: GetClientLoyaltyStatisticsQuery: %s", err))
+		return fmt.Errorf("error in statistics.go: GetClientLoyaltyStatisticsQuery: %s", err)
 	}
 	defer rows.Close()
 
@@ -159,7 +158,7 @@ func (mq *StatisticsQueries) GetReferralStatisticsQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in statistics.go: GetReferralStatisticsQuery: %s", err))
+		return fmt.Errorf("error in statistics.go: GetReferralStatisticsQuery: %s", err)
 	}
 	defer rows.Close()
 

@@ -2,7 +2,6 @@ package queries
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -67,7 +66,7 @@ func (mq *ModelQueries) FilterModelsV1Query() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in model.go: FilterModelsV1Query: %s", err))
+		return fmt.Errorf("error in model.go: FilterModelsV1Query: %s", err)
 	}
 	defer rows.Close()
 
@@ -102,7 +101,7 @@ func (mq *ModelQueries) FilterModelsV2Query() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in model.go: FilterModelsV2Query: %s", err))
+		return fmt.Errorf("error in model.go: FilterModelsV2Query: %s", err)
 	}
 	defer rows.Close()
 

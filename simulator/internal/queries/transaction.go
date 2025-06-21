@@ -2,7 +2,6 @@ package queries
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 )
@@ -45,7 +44,7 @@ func (mq *TransactionQueries) CalculateModelFinancialQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in transaction.go: CalculateModelFinancialQuery: %s", err))
+		return fmt.Errorf("error in transaction.go: CalculateModelFinancialQuery: %s", err)
 	}
 	defer rows.Close()
 
@@ -90,7 +89,7 @@ func (mq *TransactionQueries) GetAllTransactionsQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in transaction.go: GetAllTransactionsQuery: %s", err))
+		return fmt.Errorf("error in transaction.go: GetAllTransactionsQuery: %s", err)
 	}
 	defer rows.Close()
 

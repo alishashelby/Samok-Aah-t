@@ -2,7 +2,6 @@ package queries
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 )
@@ -45,7 +44,7 @@ func (mq *OrderQueries) GetAllDataToCalculateTotalCostQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in order.go: GetAllDataToCalculateTotalCostQuery: %s", err))
+		return fmt.Errorf("error in order.go: GetAllDataToCalculateTotalCostQuery: %s", err)
 	}
 	defer rows.Close()
 
@@ -92,7 +91,7 @@ func (mq *OrderQueries) GetComplicatedOrdersQuery() error {
 
 	rows, err := mq.db.Query(query)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error in order.go: GetComplicatedOrdersQuery: %s", err))
+		return fmt.Errorf("error in order.go: GetComplicatedOrdersQuery: %s", err)
 	}
 	defer rows.Close()
 

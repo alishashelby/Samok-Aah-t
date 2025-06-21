@@ -38,11 +38,8 @@ func (s *Simulator) Execute() {
 
 	s.executeQueries()
 
-	for {
-		select {
-		case <-ticker.C:
-			s.executeQueries()
-		}
+	for range ticker.C {
+		s.executeQueries()
 	}
 }
 
