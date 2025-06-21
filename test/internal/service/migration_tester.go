@@ -3,7 +3,6 @@ package service
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -35,7 +34,7 @@ func (m *MigrationTester) Initialize() error {
 		)
 	`)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error creating migration table: %v", err))
+		return fmt.Errorf("error creating migration table: %v", err)
 	}
 
 	_, err = m.db.Exec(`INSERT INTO goose_db_version(version_id, is_applied)
@@ -43,7 +42,7 @@ func (m *MigrationTester) Initialize() error {
 		WHERE NOT EXISTS (SELECT 1 FROM goose_db_version)
 	`)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error initializing migration table: %v", err))
+		return fmt.Errorf("error initializing migration table: %v", err)
 	}
 
 	return nil
@@ -52,7 +51,7 @@ func (m *MigrationTester) Initialize() error {
 func (m *MigrationTester) GetMigrations() ([]string, error) {
 	files, err := os.ReadDir(m.migrationDir)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("error reading migration dir: %v", err))
+		return nil, fmt.Errorf("error reading migration dir: %v", err)
 	}
 
 	var migrations []string
@@ -70,35 +69,35 @@ func (m *MigrationTester) TestMigration(migration string) error {
 	log.Printf("testing migration: %s\n", migration)
 
 	if err := m.runMigrationUpByOne(); err != nil {
-		return errors.New(fmt.Sprintf("error running migration up-by-one: %v", err))
+		return fmt.Errorf("error running migration up-by-one: %v", err)
 	}
 
 	snapshot1, err := m.createSnapshot()
 	if err != nil {
-		return errors.New(fmt.Sprintf("error creating snapshot: %v", err))
+		return fmt.Errorf("error creating snapshot: %v", err)
 	}
 	defer os.Remove(*snapshot1)
 
 	if err := m.runMigrationDown(); err != nil {
-		return errors.New(fmt.Sprintf("error running migration down: %v", err))
+		return fmt.Errorf("error running migration down: %v", err)
 	}
 
 	if err := m.runMigrationUpByOne(); err != nil {
-		return errors.New(fmt.Sprintf("error running migration up-by-one again: %v", err))
+		return fmt.Errorf("error running migration up-by-one again: %v", err)
 	}
 
 	snapshot2, err := m.createSnapshot()
 	if err != nil {
-		return errors.New(fmt.Sprintf("error creating snapshot: %v", err))
+		return fmt.Errorf("error creating snapshot: %v", err)
 	}
 	defer os.Remove(*snapshot2)
 
 	equal, err := m.compareSnapshots(*snapshot1, *snapshot2)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error comparing snapshots: %v", err))
+		return fmt.Errorf("error comparing snapshots: %v", err)
 	}
 	if !equal {
-		return errors.New(fmt.Sprintf("FAILURE! Migration %s is not idempotent", migration))
+		return fmt.Errorf("FAILURE! Migration %s is not idempotent", migration)
 	}
 
 	log.Printf("SUCCESS! Migration %s is idempotent\n", migration)

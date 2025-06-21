@@ -32,17 +32,20 @@ func main() {
 	err = migrationTester.Initialize()
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	migrations, err := migrationTester.GetMigrations()
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	log.Printf("found %d migrations\n", len(migrations))
 
 	for _, migration := range migrations {
 		if err = migrationTester.TestMigration(migration); err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return
 		}
 	}
 
